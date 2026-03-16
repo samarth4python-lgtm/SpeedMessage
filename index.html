@@ -3,32 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedMessage Pro - Integration Edition</title>
+    <title>SpeedMessage Pro - Google Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #075e54; --light-green: #dcf8c6; --bg: #e5ddd5; --white: #ffffff; --gray: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: #dadbd3; display: flex; height: 100vh; margin: 0; overflow: hidden; }
         
+        /* Auth Overlay */
+        #auth-overlay { position: fixed; inset: 0; background: var(--gray); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .auth-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+        
+        /* Sidebar & Chat */
         #sidebar { width: 320px; background: var(--white); border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         .sidebar-header { padding: 15px; background: #ededed; border-bottom: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         #friend-list { flex-grow: 1; overflow-y: auto; }
         .friend-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .friend-item:hover { background: #f5f5f5; }
-
         #chat-main { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg); }
         #messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
         
-        .msg { max-width: 65%; padding: 8px 12px; border-radius: 8px; font-size: 14px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
+        .msg { max-width: 65%; padding: 8px 12px; border-radius: 8px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
         .msg.me { align-self: flex-end; background: var(--light-green); border-top-right-radius: 0; }
         .msg.them { align-self: flex-start; background: var(--white); border-top-left-radius: 0; }
         .time { font-size: 9px; color: #888; display: block; text-align: right; margin-top: 4px; }
 
-        .input-area { padding: 10px 15px; background: #f0f0f0; display: flex; gap: 10px; align-items: center; }
+        /* Buttons & Inputs */
         input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
         button { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        #auth-overlay { position: fixed; inset: 0; background: var(--gray); display: flex; align-items: center; justify-content: center; z-index: 100; }
-        .auth-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+        .google-btn { background: white; color: #444; border: 1px solid #ddd; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+        .google-btn img { width: 18px; }
     </style>
 </head>
 <body>
@@ -42,7 +44,15 @@
             <button onclick="handleAuth('login')">Login</button>
             <button onclick="handleAuth('signup')" style="background:#444">Register</button>
         </div>
-        <p id="status-msg" style="font-size:12px; margin-top:15px;"></p>
+        
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+        
+        <button class="google-btn" onclick="loginWithGoogle()">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg">
+            Sign in with Google
+        </button>
+
+        <p id="status-msg" style="font-size:12px; margin-top:15px; color: red;"></p>
     </div>
 </div>
 
@@ -53,7 +63,7 @@
             <button onclick="logout()" style="background:#cc0000; padding:4px 8px; font-size:10px">Logout</button>
         </div>
         <div style="display:flex; gap:5px;">
-            <input type="text" id="targetEmail" placeholder="Add friend email..." style="font-size:11px; flex-grow:1">
+            <input type="text" id="targetEmail" placeholder="Friend's email..." style="font-size:11px; flex-grow:1">
             <button onclick="addFriend()" style="font-size:11px">Add</button>
         </div>
     </div>
@@ -62,8 +72,8 @@
 
 <div id="chat-main" style="display:none">
     <div id="messages"></div>
-    <div class="input-area">
-        <input type="text" id="msgInput" placeholder="Type a message..." style="flex-grow:1; border-radius:20px">
+    <div style="padding:15px; background:#f0f0f0; display:flex; gap:10px;">
+        <input type="text" id="msgInput" placeholder="Type a message..." style="flex-grow:1; border-radius:20px; border:none; padding:10px;">
         <button onclick="sendPrivateMsg()">Send</button>
     </div>
 </div>
@@ -76,7 +86,7 @@
     let myEmail = null;
     let activeChat = null;
 
-    // 1. AUTO-LOGIN CHECK (For browser integration environments)
+    // Check for existing session on load
     (async () => {
         const { data: { user } } = await _supabase.auth.getUser();
         if (user) {
@@ -85,42 +95,34 @@
         }
     })();
 
+    async function loginWithGoogle() {
+        const { error } = await _supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.href // Redirects back to your map/integration
+            }
+        });
+        if (error) document.getElementById('status-msg').innerText = error.message;
+    }
+
     async function handleAuth(type) {
         const email = document.getElementById('email').value;
         const password = document.getElementById('pass').value;
         const status = document.getElementById('status-msg');
 
-        if (!email || !password) {
-            status.innerText = "Please enter credentials.";
-            return;
-        }
-
         if (type === 'signup') {
-            status.innerText = "Registering...";
-            const { data, error } = await _supabase.auth.signUp({ email, password });
-            
+            const { error } = await _supabase.auth.signUp({ email, password });
             if (error) {
-                if (error.message.includes("already registered")) {
-                    status.innerText = "Account exists! Logging in...";
-                    return handleAuth('login'); // Smart switch
-                }
-                status.style.color = "red";
+                if (error.message.includes("already registered")) return handleAuth('login');
                 status.innerText = error.message;
             } else {
                 status.style.color = "green";
-                status.innerText = (password === "test-message5811") 
-                    ? "Bypass Register Success! Confirm in Dashboard then Login." 
-                    : "Registered! Check email for link.";
+                status.innerText = "Registered! Please confirm email or in Dashboard.";
             }
-        } 
-
-        if (type === 'login') {
-            status.innerText = "Logging in...";
+        } else {
             const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                status.style.color = "red";
-                status.innerText = error.message;
-            } else {
+            if (error) status.innerText = error.message;
+            else {
                 myEmail = data.user.email;
                 startApp();
             }
@@ -132,12 +134,10 @@
         document.getElementById('sidebar').style.display = 'flex';
         document.getElementById('chat-main').style.display = 'flex';
         document.getElementById('my-email').innerText = myEmail;
-        
         loadFriends();
         
-        // Realtime channels
-        _supabase.channel('f-changes').on('postgres_changes', {event:'*', schema:'public', table:'friends'}, loadFriends).subscribe();
-        _supabase.channel('m-changes').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, (payload) => {
+        _supabase.channel('f-chan').on('postgres_changes', {event:'*', schema:'public', table:'friends'}, loadFriends).subscribe();
+        _supabase.channel('m-chan').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, (payload) => {
             const m = payload.new;
             if ((m.username === activeChat && m.receiver === myEmail) || (m.username === myEmail && m.receiver === activeChat)) {
                 addMessageToUI(m);
@@ -150,7 +150,6 @@
         if (!target) return;
         await _supabase.from('friends').insert([{ sender_email: myEmail, receiver_email: target, status: 'pending' }]);
         document.getElementById('targetEmail').value = '';
-        alert("Request Sent!");
     }
 
     async function loadFriends() {
