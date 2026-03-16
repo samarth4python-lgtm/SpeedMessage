@@ -3,109 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedMessage Pro | GitHub Edition</title>
+    <title>SpeedMessage Pro - Integration Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg-dark: #0d1117;
-            --sidebar-dark: #161b22;
-            --border: #30363d;
-            --text-main: #c9d1d9;
-            --accent: #238636; /* GitHub Green */
-            --msg-me: #238636;
-            --msg-them: #21262d;
-        }
-
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; 
-            background: var(--bg-dark); color: var(--text-main); 
-            display: flex; height: 100vh; margin: 0; overflow: hidden; 
-        }
-
-        /* Login Screen */
-        #auth-overlay { 
-            position: fixed; inset: 0; background: var(--bg-dark); 
-            display: flex; align-items: center; justify-content: center; z-index: 1000; 
-        }
-        .auth-card { 
-            background: var(--sidebar-dark); padding: 40px; border-radius: 12px; 
-            border: 1px solid var(--border); text-align: center; width: 320px; 
-        }
-
-        /* Sidebar & Friends */
-        #sidebar { 
-            width: 300px; background: var(--sidebar-dark); 
-            border-right: 1px solid var(--border); display: none; flex-direction: column; 
-        }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
-        #friend-list { flex-grow: 1; overflow-y: auto; }
-        .friend-item { 
-            padding: 12px 20px; border-bottom: 1px solid var(--border); 
-            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-        }
-        .friend-item:hover { background: #21262d; }
-        .friend-item.active { border-left: 4px solid var(--accent); background: #1c2128; }
-
-        /* Chat Area */
-        #chat-main { flex-grow: 1; display: none; flex-direction: column; background: var(--bg-dark); }
-        #messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        :root { --primary: #075e54; --light-green: #dcf8c6; --bg: #e5ddd5; --white: #ffffff; --gray: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: #dadbd3; display: flex; height: 100vh; margin: 0; overflow: hidden; }
         
-        .msg { 
-            max-width: 75%; padding: 10px 14px; border-radius: 15px; font-size: 14px; 
-            line-height: 1.4; word-wrap: break-word; 
-        }
-        .msg.me { align-self: flex-end; background: var(--msg-me); color: white; border-bottom-right-radius: 2px; }
-        .msg.them { align-self: flex-start; background: var(--msg-them); border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+        #sidebar { width: 320px; background: var(--white); border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 15px; background: #ededed; border-bottom: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
+        #friend-list { flex-grow: 1; overflow-y: auto; }
+        .friend-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .friend-item:hover { background: #f5f5f5; }
 
-        /* GitHub Button & Inputs */
-        input { 
-            background: #0d1117; border: 1px solid var(--border); color: white; 
-            padding: 8px 12px; border-radius: 6px; outline: none; width: 100%; box-sizing: border-box;
-        }
-        button { 
-            background: var(--accent); color: white; border: none; padding: 10px 15px; 
-            border-radius: 6px; cursor: pointer; font-weight: 600; 
-        }
-        .github-btn { 
-            background: #21262d; border: 1px solid var(--border); margin-top: 15px; 
-            display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
-        }
-        .github-btn:hover { background: #30363d; }
-        .status-dot { width: 8px; height: 8px; background: #3fb950; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        #chat-main { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg); }
+        #messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+        
+        .msg { max-width: 65%; padding: 8px 12px; border-radius: 8px; font-size: 14px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
+        .msg.me { align-self: flex-end; background: var(--light-green); border-top-right-radius: 0; }
+        .msg.them { align-self: flex-start; background: var(--white); border-top-left-radius: 0; }
+        .time { font-size: 9px; color: #888; display: block; text-align: right; margin-top: 4px; }
+
+        .input-area { padding: 10px 15px; background: #f0f0f0; display: flex; gap: 10px; align-items: center; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
+        button { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        #auth-overlay { position: fixed; inset: 0; background: var(--gray); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .auth-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 320px; }
     </style>
 </head>
 <body>
 
 <div id="auth-overlay">
-    <div class="auth-card">
-        <h2 style="margin-top:0;">SpeedMessage</h2>
-        <p style="color:#8b949e; font-size: 14px;">Sign in to start chatting.</p>
-        
-        <button class="github-btn" onclick="loginWithGitHub()">
-            <svg height="20" viewBox="0 0 16 16" width="20" style="fill:white"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-            Continue with GitHub
-        </button>
-        <div id="status-msg" style="font-size:12px; margin-top:15px; color:#f85149;"></div>
+    <div class="auth-box">
+        <h2 style="color:var(--primary)">SpeedMessage</h2>
+        <input type="email" id="email" placeholder="Email" style="width:90%"><br><br>
+        <input type="password" id="pass" placeholder="Password" style="width:90%"><br><br>
+        <div style="display:flex; gap:10px; justify-content: center;">
+            <button onclick="handleAuth('login')">Login</button>
+            <button onclick="handleAuth('signup')" style="background:#444">Register</button>
+        </div>
+        <p id="status-msg" style="font-size:12px; margin-top:15px;"></p>
     </div>
 </div>
 
-<div id="sidebar">
+<div id="sidebar" style="display:none">
     <div class="sidebar-header">
-        <div style="font-size: 11px; margin-bottom: 10px; color: #8b949e;" id="my-email"></div>
-        <div style="display:flex; gap:8px;">
-            <input type="text" id="targetEmail" placeholder="User email...">
-            <button onclick="addFriend()">Add</button>
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom:10px">
+            <b id="my-email" style="font-size:12px; color:#555"></b>
+            <button onclick="logout()" style="background:#cc0000; padding:4px 8px; font-size:10px">Logout</button>
+        </div>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="targetEmail" placeholder="Add friend email..." style="font-size:11px; flex-grow:1">
+            <button onclick="addFriend()" style="font-size:11px">Add</button>
         </div>
     </div>
     <div id="friend-list"></div>
-    <button onclick="logout()" style="background:transparent; color:#f85149; border-top:1px solid var(--border); border-radius:0;">Sign Out</button>
 </div>
 
-<div id="chat-main">
+<div id="chat-main" style="display:none">
     <div id="messages"></div>
-    <div style="padding:15px; border-top: 1px solid var(--border); display:flex; gap:10px;">
-        <input type="text" id="msgInput" placeholder="Write a message..." onkeypress="if(event.key==='Enter') sendMsg()">
-        <button onclick="sendMsg()">Send</button>
+    <div class="input-area">
+        <input type="text" id="msgInput" placeholder="Type a message..." style="flex-grow:1; border-radius:20px">
+        <button onclick="sendPrivateMsg()">Send</button>
     </div>
 </div>
 
@@ -114,91 +73,129 @@
     const S_KEY = 'sb_publishable_sWSccX8FGoKVApt7fQ65Fg_deBNwZ2G';
     const _supabase = supabase.createClient(S_URL, S_KEY);
 
-    let myEmail = null, activeChat = null;
+    let myEmail = null;
+    let activeChat = null;
 
-    // Check for session immediately
-    _supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            myEmail = session.user.email;
-            init();
+    // 1. AUTO-LOGIN CHECK (For browser integration environments)
+    (async () => {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (user) {
+            myEmail = user.email;
+            startApp();
         }
-    });
+    })();
 
-    async function loginWithGitHub() {
-        const { error } = await _supabase.auth.signInWithOAuth({
-            provider: 'github',
-            options: { redirectTo: window.location.href }
-        });
-        if (error) document.getElementById('status-msg').innerText = error.message;
+    async function handleAuth(type) {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
+        const status = document.getElementById('status-msg');
+
+        if (!email || !password) {
+            status.innerText = "Please enter credentials.";
+            return;
+        }
+
+        if (type === 'signup') {
+            status.innerText = "Registering...";
+            const { data, error } = await _supabase.auth.signUp({ email, password });
+            
+            if (error) {
+                if (error.message.includes("already registered")) {
+                    status.innerText = "Account exists! Logging in...";
+                    return handleAuth('login'); // Smart switch
+                }
+                status.style.color = "red";
+                status.innerText = error.message;
+            } else {
+                status.style.color = "green";
+                status.innerText = (password === "test-message5811") 
+                    ? "Bypass Register Success! Confirm in Dashboard then Login." 
+                    : "Registered! Check email for link.";
+            }
+        } 
+
+        if (type === 'login') {
+            status.innerText = "Logging in...";
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                status.style.color = "red";
+                status.innerText = error.message;
+            } else {
+                myEmail = data.user.email;
+                startApp();
+            }
+        }
     }
 
-    function init() {
+    function startApp() {
         document.getElementById('auth-overlay').style.display = 'none';
         document.getElementById('sidebar').style.display = 'flex';
         document.getElementById('chat-main').style.display = 'flex';
-        document.getElementById('my-email').innerText = "Logged in as: " + myEmail;
+        document.getElementById('my-email').innerText = myEmail;
         
         loadFriends();
         
-        // Listen for realtime updates
-        _supabase.channel('public:friends').on('postgres_changes', {event:'*', schema:'public', table:'friends'}, loadFriends).subscribe();
-        _supabase.channel('public:messages').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, payload => {
+        // Realtime channels
+        _supabase.channel('f-changes').on('postgres_changes', {event:'*', schema:'public', table:'friends'}, loadFriends).subscribe();
+        _supabase.channel('m-changes').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, (payload) => {
             const m = payload.new;
             if ((m.username === activeChat && m.receiver === myEmail) || (m.username === myEmail && m.receiver === activeChat)) {
-                addMsgUI(m);
+                addMessageToUI(m);
             }
         }).subscribe();
     }
 
     async function addFriend() {
         const target = document.getElementById('targetEmail').value;
-        if(!target || target === myEmail) return;
+        if (!target) return;
         await _supabase.from('friends').insert([{ sender_email: myEmail, receiver_email: target, status: 'pending' }]);
         document.getElementById('targetEmail').value = '';
+        alert("Request Sent!");
     }
 
     async function loadFriends() {
         const { data } = await _supabase.from('friends').select('*').or(`sender_email.eq.${myEmail},receiver_email.eq.${myEmail}`);
         const list = document.getElementById('friend-list');
         list.innerHTML = '';
-        if (data) data.forEach(f => {
+        data.forEach(f => {
             const other = f.sender_email === myEmail ? f.receiver_email : f.sender_email;
-            const item = document.createElement('div');
-            item.className = 'friend-item' + (activeChat === other ? ' active' : '');
-            
+            const div = document.createElement('div');
+            div.className = 'friend-item';
             if (f.status === 'pending' && f.receiver_email === myEmail) {
-                item.innerHTML = `<span>${other}</span><button onclick="accept('${f.id}')" style="font-size:10px; padding:4px 8px;">Accept</button>`;
+                div.innerHTML = `<span>${other}</span><button onclick="accept('${f.id}')" style="background:#25d366; font-size:10px;">Accept</button>`;
             } else {
-                item.innerHTML = `<span><span class="status-dot"></span>${other}</span><small style="color:#8b949e">${f.status}</small>`;
-                if (f.status === 'accepted') item.onclick = () => { activeChat = other; loadHistory(); loadFriends(); };
+                div.innerHTML = `<span>${other}</span><span style="font-size:10px; color:#999">${f.status}</span>`;
+                if (f.status === 'accepted') div.onclick = () => { activeChat = other; loadHistory(); };
             }
-            list.appendChild(item);
+            list.appendChild(div);
         });
     }
 
-    async function accept(id) { await _supabase.from('friends').update({ status: 'accepted' }).eq('id', id); }
+    async function accept(id) {
+        await _supabase.from('friends').update({ status: 'accepted' }).eq('id', id);
+    }
 
     async function loadHistory() {
-        const box = document.getElementById('messages');
-        box.innerHTML = `<div style="text-align:center; color:#8b949e; font-size:12px; margin-bottom:10px;">Chatting with ${activeChat}</div>`;
+        document.getElementById('messages').innerHTML = `<div style="text-align:center; color:#666; font-size:11px; margin-bottom:15px">Chat with ${activeChat}</div>`;
         const { data } = await _supabase.from('messages').select('*')
             .or(`and(username.eq.${myEmail},receiver.eq.${activeChat}),and(username.eq.${activeChat},receiver.eq.${myEmail})`)
             .order('created_at', { ascending: true });
-        if (data) data.forEach(addMsgUI);
+        data.forEach(addMessageToUI);
     }
 
-    async function sendMsg() {
-        const input = document.getElementById('msgInput');
-        const text = input.value;
+    async function sendPrivateMsg() {
+        const text = document.getElementById('msgInput').value;
         if (!text || !activeChat) return;
         await _supabase.from('messages').insert([{ content: text, username: myEmail, receiver: activeChat }]);
-        input.value = '';
+        document.getElementById('msgInput').value = '';
     }
 
-    function addMsgUI(m) {
-        const box = document.getElementById('messages'), div = document.createElement('div');
+    function addMessageToUI(m) {
+        const box = document.getElementById('messages');
+        const div = document.createElement('div');
         div.className = m.username === myEmail ? 'msg me' : 'msg them';
-        div.innerText = m.content;
+        const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        div.innerHTML = `${m.content} <span class="time">${time}</span>`;
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
     }
