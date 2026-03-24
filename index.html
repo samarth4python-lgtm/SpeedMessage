@@ -3,102 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maintenance - SpeedMessages</title>
+    <title>SpeedMessage|Online Again</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background-color: #0f172a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            color: white;
-            text-align: center;
-        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 320px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        #main-chat { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
+        .hidden { display: none !important; }
+        
+        /* Headers */
+        .header { background: #075e54; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .search-box { padding: 10px; background: #f6f6f6; border-bottom: 1px solid #ddd; display: flex; gap: 5px; }
+        
+        /* User List */
+        #user-list { flex: 1; overflow-y: auto; }
+        .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .user-item:hover { background: #f5f5f5; }
+        .user-info { display: flex; flex-direction: column; }
+        .user-name { font-weight: 600; color: #111; }
+        .user-status { font-size: 11px; color: #888; }
 
-        .container {
-            max-width: 500px;
-            padding: 40px;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
+        /* Buttons & Tags */
+        .pending-tag { background: #e1f5fe; color: #0288d1; font-size: 10px; padding: 3px 7px; border-radius: 4px; font-weight: bold; border: 1px solid #0288d1; }
+        .accept-btn { background: #25d366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
-        .brand {
-            color: #38bdf8;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            display: block;
-            margin-bottom: 8px;
-        }
+        /* Chat Area */
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 75%; font-size: 14px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .mine { align-self: flex-end; background: #dcf8c6; border-top-right-radius: 0; }
+        .theirs { align-self: flex-start; background: white; border-top-left-radius: 0; }
+        
+        /* Input */
+        .footer { padding: 10px; background: #f0f0f0; display: flex; gap: 10px; align-items: center; }
+        #msg-input { flex: 1; border-radius: 20px; padding: 12px 15px; border: 1px solid #ccc; outline: none; }
+        .btn-send { background: #075e54; color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
 
-        h1 {
-            font-size: 2rem;
-            margin: 0 0 15px 0;
-            line-height: 1.2;
-        }
-
-        p {
-            color: #94a3b8;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }
-
-        /* Animated Progress Bar */
-        .progress-container {
-            width: 100%;
-            height: 8px;
-            background: #334155;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-bar {
-            width: 40%;
-            height: 100%;
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
-            border-radius: 10px;
-            animation: slide 3s ease-in-out infinite;
-        }
-
-        @keyframes slide {
-            0% { transform: translateX(-100%); }
-            50% { transform: translateX(150%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .status-tag {
-            display: inline-block;
-            background: rgba(56, 189, 248, 0.1);
-            color: #38bdf8;
-            padding: 6px 16px;
-            border-radius: 100px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
+        /* Auth Card */
+        #auth-screen { position: fixed; inset: 0; background: #e5ddd5; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: white; padding: 30px; border-radius: 15px; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .auth-card input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <span class="status-tag">Scheduled Maintenance</span>
-        <h1>Sorry, <span style="color: #38bdf8;">SpeedMessages</span> is currently under maintenance</h1>
-        <p</SpeedMessages is currently under heavy rebuilding, the app got hacked.</p>
-        
-        <div class="progress-container">
-            <div class="progress-bar"></div>
-        </div>
-        
-        <p style="font-size: 0.9rem; margin-top: 20px; opacity: 0.7;">
-            Thanks for you patience.
-        </p>
+<div id="auth-screen">
+    <div class="auth-card">
+        <h1 style="color:#075e54; margin-top:0;">SpeedMessage</h1>
+        <div id="signup-fields" class="hidden"><input type="text" id="nick" placeholder="Choose a Nickname"></div>
+        <input type="email" id="email" placeholder="Email Address">
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="handleAuth()" id="auth-btn" style="width:100%; padding:12px; background:#075e54; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">Login</button>
+        <p onclick="toggleAuth()" id="toggle-link" style="margin-top:15px; font-size:13px; color:#075e54; cursor:pointer; text-decoration:underline;">New here? Create account</p>
     </div>
+</div>
 
+<div id="sidebar" class="hidden">
+    <div class="header">
+        <span>Chats</span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+    <div class="search-box">
+        <input type="text" id="friend-search" placeholder="Nickname or Email" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ddd;">
+        <button onclick="addFriend()" style="background:#25d366; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">Add</button>
+    </div>
+    <div id="user-list"></div>
+    <button onclick="loadFriends()" style="font-size:10px; border:none; background:none; color:#888; padding:5px; cursor:pointer;">↻ Force Refresh List</button>
+</div>
+
+<div id="main-chat" class="hidden">
+    <div class="header" id="chat-title" style="background:#ededed; color:#333; border-bottom:1px solid #ddd;">Select a contact</div>
+    <div id="chat-box"></div>
+    <div class="footer">
+        <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMsg()">
+        <button class="btn-send" onclick="sendMsg()">➤</button>
+    </div>
+</div>
+
+<script>
+    const _supabase = supabase.createClient('https://lxqccstulccnjfmlcyfn.supabase.co', 'sb_publishable_bburuNja_-PtO30MQB1F3A_t5F1wDeT');
+    
+    let currentUser = null, activeRoomId = null, isSignUp = false;
+
+    function toggleAuth() {
+        isSignUp = !isSignUp;
+        document.getElementById('signup-fields').classList.toggle('hidden', !isSignUp);
+        document.getElementById('auth-btn').innerText = isSignUp ? 'Sign Up' : 'Login';
+    }
+
+    async function handleAuth() {
+        const e = document.getElementById('email').value.trim(), p = document.getElementById('pass').value, n = document.getElementById('nick').value.trim();
+        if (isSignUp) {
+            const { error } = await _supabase.auth.signUp({ email: e, password: p, options: { data: { display_name: n } } });
+            if (error) alert(error.message); else alert("Account created! Log in now.");
+        } else {
+            const { error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
+            if (error) alert(error.message);
+        }
+    }
+
+    async function logout() { await _supabase.auth.signOut(); window.localStorage.clear(); location.reload(); }
+
+    _supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('main-chat').classList.remove('hidden');
+            loadFriends();
+            subscribeRealtime();
+        }
+    });
+
+    async function addFriend() {
+        const term = document.getElementById('friend-search').value.trim();
+        if (!term) return;
+        
+        const { data: prof, error: pError } = await _supabase.from('profiles').select('*').or(`nickname.ilike."${term}",email.ilike."${term}"`).maybeSingle();
+        
+        if (!prof) return alert("User not found!");
+        if (prof.id === currentUser.id) return alert("You can't add yourself!");
+
+        const { error } = await _supabase.from('friendships').insert([{ user_id: currentUser.id, friend_id: prof.id, status: 'pending' }]);
+        
+        if (error) alert("Request already exists!");
+        else { alert("Request Sent!"); loadFriends(); }
+    }
+
+    async function loadFriends() {
+        // Step 1: Get all friendships involving the current user
+        const { data: relations, error: rErr } = await _supabase.from('friendships').select('*').or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`);
+        
+        if (rErr) return console.error(rErr);
+
+        // Step 2: Get ALL profiles to match nicknames locally (Avoids complex joins)
+        const { data: allProfiles } = await _supabase.from('profiles').select('id, nickname');
+        const profileMap = Object.fromEntries(allProfiles.map(p => [p.id, p.nickname]));
+
+        const list = document.getElementById('user-list');
+        list.innerHTML = '';
+
+        if (!relations || relations.length === 0) {
+            list.innerHTML = '<div style="padding:20px; text-align:center; color:#888; font-size:12px;">No friends yet.</div>';
+            return;
+        }
+
+        relations.forEach(rel => {
+            const otherId = (rel.user_id === currentUser.id) ? rel.friend_id : rel.user_id;
+            const otherName = profileMap[otherId] || "Unknown User";
+            
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            
+            let statusHtml = '';
+            if (rel.status === 'pending') {
+                if (rel.user_id === currentUser.id) {
+                    statusHtml = '<span class="pending-tag">Pending Out</span>';
+                } else {
+                    statusHtml = `<button class="accept-btn" onclick="event.stopPropagation(); acceptFriend('${rel.id}')">Accept</button>`;
+                }
+            } else {
+                statusHtml = '<span style="color:#25d366; font-size:10px;">✔ Friends</span>';
+                div.onclick = () => openChat(otherId, otherName);
+            }
+
+            div.innerHTML = `<div class="user-info"><span class="user-name">${otherName}</span></div> ${statusHtml}`;
+            list.appendChild(div);
+        });
+    }
+
+    async function acceptFriend(id) {
+        await _supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
+        loadFriends();
+    }
+
+    function openChat(friendId, friendName) {
+        const ids = [currentUser.id, friendId].sort();
+        activeRoomId = ids.join('_');
+        document.getElementById('chat-title').innerText = "Chat with " + friendName;
+        loadMessages();
+    }
+
+    async function loadMessages() {
+        if (!activeRoomId) return;
+        const { data } = await _supabase.from('messages').select('*').eq('room_id', activeRoomId).order('created_at', { ascending: true });
+        const box = document.getElementById('chat-box');
+        box.innerHTML = '';
+        data?.forEach(m => {
+            const d = document.createElement('div');
+            d.className = `msg ${m.user_id === currentUser.id ? 'mine' : 'theirs'}`;
+            d.innerText = m.content;
+            box.appendChild(d);
+        });
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendMsg() {
+        const input = document.getElementById('msg-input');
+        if (!input.value || !activeRoomId) return;
+        await _supabase.from('messages').insert([{ 
+            content: input.value, 
+            room_id: activeRoomId, 
+            user_id: currentUser.id, 
+            username: currentUser.user_metadata.display_name || "User" 
+        }]);
+        input.value = '';
+        loadMessages();
+    }
+
+    function subscribeRealtime() {
+        // Listen for ANY change in messages or friendships to keep UI fresh
+        _supabase.channel('custom-all-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadMessages())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadFriends())
+        .subscribe();
+    }
+</script>
 </body>
 </html>
