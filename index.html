@@ -3,221 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpeedMessage|Online Again</title>
+    <title>SpeedMessage v3.5 | Pro Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 320px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
-        #main-chat { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
-        .hidden { display: none !important; }
+        :root { --primary: #008069; --danger: #ea4335; --bg: #f0f2f5; --white: #ffffff; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; background: var(--bg); display: flex; height: 100vh; }
         
-        /* Headers */
-        .header { background: #075e54; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .search-box { padding: 10px; background: #f6f6f6; border-bottom: 1px solid #ddd; display: flex; gap: 5px; }
+        #sidebar { width: 380px; background: var(--white); border-right: 1px solid #d1d7db; display: flex; flex-direction: column; }
+        .header { background: #f0f2f5; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d1d7db; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #dfe5e7; display: flex; align-items: center; justify-content: center; font-weight: bold; overflow: hidden; border: 1px solid #ddd; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* User List */
         #user-list { flex: 1; overflow-y: auto; }
-        .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .user-item:hover { background: #f5f5f5; }
-        .user-info { display: flex; flex-direction: column; }
-        .user-name { font-weight: 600; color: #111; }
-        .user-status { font-size: 11px; color: #888; }
+        .list-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 1px solid #f5f5f5; position: relative; }
+        .list-item:hover { background: #f5f6f6; }
+        .list-details { flex: 1; }
+        .delete-btn { color: var(--danger); font-size: 18px; padding: 5px; opacity: 0.3; transition: 0.2s; }
+        .list-item:hover .delete-btn { opacity: 1; }
 
-        /* Buttons & Tags */
-        .pending-tag { background: #e1f5fe; color: #0288d1; font-size: 10px; padding: 3px 7px; border-radius: 4px; font-weight: bold; border: 1px solid #0288d1; }
-        .accept-btn { background: #25d366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        #main-chat { flex: 1; display: flex; flex-direction: column; background: #efe7dd; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 5px; }
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 70%; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .mine { align-self: flex-end; background: #dcf8c6; }
+        .theirs { align-self: flex-start; background: white; }
 
-        /* Chat Area */
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { padding: 8px 12px; border-radius: 8px; max-width: 75%; font-size: 14px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .mine { align-self: flex-end; background: #dcf8c6; border-top-right-radius: 0; }
-        .theirs { align-self: flex-start; background: white; border-top-left-radius: 0; }
+        .footer { padding: 10px; background: #f0f2f5; display: flex; gap: 10px; }
+        #msg-input { flex: 1; border: none; padding: 12px; border-radius: 20px; outline: none; }
         
-        /* Input */
-        .footer { padding: 10px; background: #f0f0f0; display: flex; gap: 10px; align-items: center; }
-        #msg-input { flex: 1; border-radius: 20px; padding: 12px 15px; border: 1px solid #ccc; outline: none; }
-        .btn-send { background: #075e54; color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
-
-        /* Auth Card */
-        #auth-screen { position: fixed; inset: 0; background: #e5ddd5; z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .auth-card { background: white; padding: 30px; border-radius: 15px; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        .auth-card input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .btn-invite { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        input { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <div id="auth-screen">
-    <div class="auth-card">
-        <h1 style="color:#075e54; margin-top:0;">SpeedMessage</h1>
-        <div id="signup-fields" class="hidden"><input type="text" id="nick" placeholder="Choose a Nickname"></div>
-        <input type="email" id="email" placeholder="Email Address">
+    <div class="card">
+        <h2 style="color: var(--primary)">SpeedMessage</h2>
+        <div id="signup-fields" class="hidden">
+            <input type="text" id="nick" placeholder="Nickname">
+            <input type="text" id="avatar-input" placeholder="Avatar Image URL">
+        </div>
+        <input type="email" id="email" placeholder="Email">
         <input type="password" id="pass" placeholder="Password">
-        <button onclick="handleAuth()" id="auth-btn" style="width:100%; padding:12px; background:#075e54; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">Login</button>
-        <p onclick="toggleAuth()" id="toggle-link" style="margin-top:15px; font-size:13px; color:#075e54; cursor:pointer; text-decoration:underline;">New here? Create account</p>
+        <button onclick="handleAuth()" id="auth-btn" style="width:100%; padding:10px; background:var(--primary); color:white; border:none; border-radius:5px; cursor:pointer;">Login</button>
+        <p onclick="toggleAuth()" style="font-size:12px; margin-top:15px; cursor:pointer; color:var(--primary)">Switch Login/Signup</p>
     </div>
 </div>
 
 <div id="sidebar" class="hidden">
     <div class="header">
-        <span>Chats</span>
-        <button class="btn-logout" onclick="logout()">Logout</button>
+        <div id="my-avatar" class="avatar">?</div>
+        <div style="display:flex; gap:10px;">
+            <button onclick="createGroup()" style="border:none; background:none; cursor:pointer; font-size:20px;">👥</button>
+            <button onclick="logout()" style="border:none; background:none; cursor:pointer;">Logout</button>
+        </div>
     </div>
-    <div class="search-box">
-        <input type="text" id="friend-search" placeholder="Nickname or Email" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ddd;">
-        <button onclick="addFriend()" style="background:#25d366; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">Add</button>
-    </div>
+    <div style="padding:10px;"><input type="text" id="friend-search" placeholder="Add Friend by Nickname..." onkeydown="if(event.key==='Enter') addFriend()" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;"></div>
     <div id="user-list"></div>
-    <button onclick="loadFriends()" style="font-size:10px; border:none; background:none; color:#888; padding:5px; cursor:pointer;">↻ Force Refresh List</button>
 </div>
 
 <div id="main-chat" class="hidden">
-    <div class="header" id="chat-title" style="background:#ededed; color:#333; border-bottom:1px solid #ddd;">Select a contact</div>
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div id="chat-avatar" class="avatar">?</div>
+            <div>
+                <div id="chat-title" style="font-weight:600;">Select a chat</div>
+                <div id="chat-type" style="font-size:10px; color:gray;"></div>
+            </div>
+        </div>
+        <button id="invite-btn" class="btn-invite hidden" onclick="inviteToGroup()">+ Invite</button>
+    </div>
     <div id="chat-box"></div>
     <div class="footer">
         <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMsg()">
-        <button class="btn-send" onclick="sendMsg()">➤</button>
     </div>
 </div>
 
 <script>
     const _supabase = supabase.createClient('https://lxqccstulccnjfmlcyfn.supabase.co', 'sb_publishable_bburuNja_-PtO30MQB1F3A_t5F1wDeT');
-    
-    let currentUser = null, activeRoomId = null, isSignUp = false;
+    let currentUser = null, activeRoomId = null, isGroup = false;
 
-    function toggleAuth() {
-        isSignUp = !isSignUp;
-        document.getElementById('signup-fields').classList.toggle('hidden', !isSignUp);
-        document.getElementById('auth-btn').innerText = isSignUp ? 'Sign Up' : 'Login';
-    }
-
+    function toggleAuth() { document.getElementById('signup-fields').classList.toggle('hidden'); }
     async function handleAuth() {
-        const e = document.getElementById('email').value.trim(), p = document.getElementById('pass').value, n = document.getElementById('nick').value.trim();
-        if (isSignUp) {
-            const { error } = await _supabase.auth.signUp({ email: e, password: p, options: { data: { display_name: n } } });
-            if (error) alert(error.message); else alert("Account created! Log in now.");
+        const e = document.getElementById('email').value, p = document.getElementById('pass').value, n = document.getElementById('nick').value, av = document.getElementById('avatar-input').value;
+        if (!document.getElementById('signup-fields').classList.contains('hidden')) {
+            await _supabase.auth.signUp({ email: e, password: p, options: { data: { display_name: n, avatar_url: av } } });
+            alert("Signed up! Now Login.");
         } else {
-            const { error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
-            if (error) alert(error.message);
+            await _supabase.auth.signInWithPassword({ email: e, password: p });
         }
     }
+    function logout() { _supabase.auth.signOut(); location.reload(); }
 
-    async function logout() { await _supabase.auth.signOut(); window.localStorage.clear(); location.reload(); }
-
-    _supabase.auth.onAuthStateChange((event, session) => {
+    _supabase.auth.onAuthStateChange((ev, session) => {
         if (session) {
             currentUser = session.user;
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('sidebar').classList.remove('hidden');
             document.getElementById('main-chat').classList.remove('hidden');
-            loadFriends();
+            loadSidebar();
             subscribeRealtime();
         }
     });
 
-    async function addFriend() {
-        const term = document.getElementById('friend-search').value.trim();
-        if (!term) return;
-        
-        const { data: prof, error: pError } = await _supabase.from('profiles').select('*').or(`nickname.ilike."${term}",email.ilike."${term}"`).maybeSingle();
-        
-        if (!prof) return alert("User not found!");
-        if (prof.id === currentUser.id) return alert("You can't add yourself!");
-
-        const { error } = await _supabase.from('friendships').insert([{ user_id: currentUser.id, friend_id: prof.id, status: 'pending' }]);
-        
-        if (error) alert("Request already exists!");
-        else { alert("Request Sent!"); loadFriends(); }
-    }
-
-    async function loadFriends() {
-        // Step 1: Get all friendships involving the current user
-        const { data: relations, error: rErr } = await _supabase.from('friendships').select('*').or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`);
-        
-        if (rErr) return console.error(rErr);
-
-        // Step 2: Get ALL profiles to match nicknames locally (Avoids complex joins)
-        const { data: allProfiles } = await _supabase.from('profiles').select('id, nickname');
-        const profileMap = Object.fromEntries(allProfiles.map(p => [p.id, p.nickname]));
-
+    async function loadSidebar() {
         const list = document.getElementById('user-list');
-        list.innerHTML = '';
+        list.innerHTML = ''; // Crucial: Fixes the double-entry bug
+        
+        const { data: friends } = await _supabase.from('friendships').select('*, sender:profiles!friendships_user_id_fkey(*), receiver:profiles!friendships_friend_id_fkey(*)').or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`);
+        const { data: groups } = await _supabase.from('group_members').select('*, groups(*)').eq('user_id', currentUser.id);
 
-        if (!relations || relations.length === 0) {
-            list.innerHTML = '<div style="padding:20px; text-align:center; color:#888; font-size:12px;">No friends yet.</div>';
-            return;
-        }
-
-        relations.forEach(rel => {
-            const otherId = (rel.user_id === currentUser.id) ? rel.friend_id : rel.user_id;
-            const otherName = profileMap[otherId] || "Unknown User";
-            
-            const div = document.createElement('div');
-            div.className = 'user-item';
-            
-            let statusHtml = '';
-            if (rel.status === 'pending') {
-                if (rel.user_id === currentUser.id) {
-                    statusHtml = '<span class="pending-tag">Pending Out</span>';
-                } else {
-                    statusHtml = `<button class="accept-btn" onclick="event.stopPropagation(); acceptFriend('${rel.id}')">Accept</button>`;
-                }
-            } else {
-                statusHtml = '<span style="color:#25d366; font-size:10px;">✔ Friends</span>';
-                div.onclick = () => openChat(otherId, otherName);
-            }
-
-            div.innerHTML = `<div class="user-info"><span class="user-name">${otherName}</span></div> ${statusHtml}`;
-            list.appendChild(div);
+        groups?.forEach(g => renderItem(g.groups.name, g.group_id, true, null, g.id));
+        friends?.forEach(f => {
+            const friend = (f.user_id === currentUser.id) ? f.receiver : f.sender;
+            if(friend && f.status === 'accepted') renderItem(friend.nickname, [currentUser.id, friend.id].sort().join('_'), false, friend.avatar_url, f.id);
+            else if(friend && f.friend_id === currentUser.id) renderPending(f);
         });
     }
 
-    async function acceptFriend(id) {
-        await _supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
-        loadFriends();
+    function renderItem(name, roomId, isGrp, avatarUrl, dbId) {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        const av = avatarUrl ? `<img src="${avatarUrl}">` : name[0].toUpperCase();
+        div.innerHTML = `<div class="avatar">${av}</div><div class="list-details"><b>${name}</b></div><div class="delete-btn" onclick="event.stopPropagation(); deleteItem('${dbId}', ${isGrp})">×</div>`;
+        div.onclick = () => {
+            activeRoomId = roomId; isGroup = isGrp;
+            document.getElementById('chat-title').innerText = name;
+            document.getElementById('chat-type').innerText = isGrp ? "Group Chat" : "Private Chat";
+            document.getElementById('invite-btn').classList.toggle('hidden', !isGrp);
+            loadMessages();
+        };
+        document.getElementById('user-list').appendChild(div);
     }
 
-    function openChat(friendId, friendName) {
-        const ids = [currentUser.id, friendId].sort();
-        activeRoomId = ids.join('_');
-        document.getElementById('chat-title').innerText = "Chat with " + friendName;
-        loadMessages();
+    async function deleteItem(id, isGrp) {
+        if(!confirm("Are you sure you want to remove this?")) return;
+        if(isGrp) await _supabase.from('group_members').delete().eq('id', id);
+        else await _supabase.from('friendships').delete().eq('id', id);
+        loadSidebar();
+    }
+
+    async function inviteToGroup() {
+        const nick = prompt("Enter friend's nickname to invite:");
+        if(!nick) return;
+        const { data: prof } = await _supabase.from('profiles').select('id').ilike('nickname', nick).maybeSingle();
+        if(!prof) return alert("User not found!");
+        await _supabase.from('group_members').insert([{ group_id: activeRoomId, user_id: prof.id }]);
+        alert("Invited!");
     }
 
     async function loadMessages() {
-        if (!activeRoomId) return;
         const { data } = await _supabase.from('messages').select('*').eq('room_id', activeRoomId).order('created_at', { ascending: true });
-        const box = document.getElementById('chat-box');
-        box.innerHTML = '';
+        const box = document.getElementById('chat-box'); box.innerHTML = '';
         data?.forEach(m => {
-            const d = document.createElement('div');
-            d.className = `msg ${m.user_id === currentUser.id ? 'mine' : 'theirs'}`;
-            d.innerText = m.content;
+            const d = document.createElement('div'); d.className = `msg ${m.user_id === currentUser.id ? 'mine' : 'theirs'}`;
+            d.innerHTML = `${isGroup && m.user_id !== currentUser.id ? `<small style="display:block;color:green">${m.username}</small>` : ''}${m.content}`;
             box.appendChild(d);
         });
         box.scrollTop = box.scrollHeight;
     }
 
     async function sendMsg() {
-        const input = document.getElementById('msg-input');
-        if (!input.value || !activeRoomId) return;
-        await _supabase.from('messages').insert([{ 
-            content: input.value, 
-            room_id: activeRoomId, 
-            user_id: currentUser.id, 
-            username: currentUser.user_metadata.display_name || "User" 
-        }]);
-        input.value = '';
-        loadMessages();
+        const i = document.getElementById('msg-input'); if(!i.value) return;
+        await _supabase.from('messages').insert([{ content: i.value, room_id: activeRoomId, user_id: currentUser.id, username: currentUser.user_metadata.display_name }]);
+        i.value = '';
     }
 
     function subscribeRealtime() {
-        // Listen for ANY change in messages or friendships to keep UI fresh
-        _supabase.channel('custom-all-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadMessages())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadFriends())
-        .subscribe();
+        _supabase.channel('room').on('postgres_changes', { event: '*', schema: 'public' }, () => { loadSidebar(); loadMessages(); }).subscribe();
+    }
+
+    async function addFriend() {
+        const t = document.getElementById('friend-search').value;
+        const { data: p } = await _supabase.from('profiles').select('id').or(`nickname.ilike."${t}",email.ilike."${t}"`).maybeSingle();
+        if(p) await _supabase.from('friendships').insert([{ user_id: currentUser.id, friend_id: p.id, status: 'pending' }]);
+        document.getElementById('friend-search').value = '';
+    }
+
+    function renderPending(f) {
+        const div = document.createElement('div'); div.className = 'list-item'; div.style.background = "#fff9c4";
+        div.innerHTML = `<b>Request: ${f.sender.nickname}</b> <button onclick="accept('${f.id}')">Accept</button>`;
+        document.getElementById('user-list').appendChild(div);
+    }
+    async function accept(id) { await _supabase.from('friendships').update({status:'accepted'}).eq('id', id); loadSidebar(); }
+    async function createGroup() {
+        const n = prompt("Group Name:"); if(!n) return;
+        const { data: g } = await _supabase.from('groups').insert([{ name: n, created_by: currentUser.id }]).select().single();
+        await _supabase.from('group_members').insert([{ group_id: g.id, user_id: currentUser.id }]);
+        loadSidebar();
     }
 </script>
 </body>
