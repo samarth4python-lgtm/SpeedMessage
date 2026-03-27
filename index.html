@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --primary: #008069; --danger: #ea4335; --bg: #f0f2f5; --white: #ffffff; }
+        :root { --primary: #008069; --danger: #ea4335; --bg: #f0f2f5; --white: #ffffff; --horizen: #3498db; }
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { margin: 0; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
         
@@ -44,6 +44,9 @@
         .card { background: white; padding: 30px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         input { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
         .hidden { display: none !important; }
+        
+        .btn-hz { background: var(--horizen); color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 15px; transition: 0.2s; }
+        .btn-hz:hover { background: #2980b9; }
     </style>
 </head>
 <body>
@@ -62,6 +65,11 @@
 <div id="auth-screen">
     <div class="card">
         <h2 style="color: var(--primary)">SpeedMessage v4</h2>
+        
+        <button class="btn-hz" onclick="syncWithHorizen()">LOGIN WITH HORIZEN ID</button>
+        
+        <div style="color: #888; font-size: 11px; margin-bottom: 15px;">- OR USE SPEEDMESSAGE ACCOUNT -</div>
+
         <div id="signup-fields" class="hidden">
             <input type="text" id="nick" placeholder="Nickname">
             <input type="text" id="avatar-input" placeholder="Avatar URL">
@@ -110,15 +118,39 @@
     let currentUser = null, activeRoomId = null, isGroup = false;
     let myPeer, currentCall, localStream;
 
+    // --- HORIZEN LOGIN BRIDGE ---
+    function syncWithHorizen() {
+        // Asks the Master OS (parent window) for credentials
+        window.parent.postMessage({ type: 'REQUEST_HORIZEN_AUTH' }, '*');
+    }
+
+    window.addEventListener('message', async (event) => {
+        if (event.data.type === 'AUTH_TRANSFER') {
+            // Received credentials from Horizen OS
+            // Note: Since this is a different project, we use the email to sign in
+            // For a seamless demo, you may need a shared password or 
+            // a logic to auto-create the user if they don't exist in SM yet.
+            alert("Linking Horizen Account: " + event.data.email);
+            
+            // For now, we set the user and bypass the auth screen
+            // In a real setup, you'd use a custom login token here
+            document.getElementById('email').value = event.data.email;
+            document.getElementById('pass').value = "horizen_pass"; // Temporary placeholder
+            handleAuth();
+        }
+    });
+
     // --- AUTH ---
     function toggleAuth() { document.getElementById('signup-fields').classList.toggle('hidden'); }
     async function handleAuth() {
         const e = document.getElementById('email').value, p = document.getElementById('pass').value, n = document.getElementById('nick').value, av = document.getElementById('avatar-input').value;
         if (!document.getElementById('signup-fields').classList.contains('hidden')) {
+            await _supabase.from('profiles').insert([{ id: (await _supabase.auth.getUser()).data.user.id, nickname: n, avatar_url: av }]);
             await _supabase.auth.signUp({ email: e, password: p, options: { data: { display_name: n, avatar_url: av } } });
             alert("Signed up! Now Login.");
         } else {
-            await _supabase.auth.signInWithPassword({ email: e, password: p });
+            const { data, error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
+            if(error) alert(error.message);
         }
     }
     function logout() { _supabase.auth.signOut(); location.reload(); }
@@ -143,8 +175,7 @@
 
     // --- CALLING LOGIC (PeerJS) ---
     function initPeer() {
-        // We use the User's Supabase ID as the Peer ID so we know how to find them
-        myPeer = new Peer(currentUser.id);
+        myPeer = new Peer(currentUser.id.replace(/-/g, ''));
         
         myPeer.on('call', (call) => {
             document.getElementById('call-overlay').classList.remove('hidden');
@@ -167,7 +198,7 @@
 
     async function startCall() {
         if (isGroup) return alert("Private calls only!");
-        const friendId = activeRoomId.replace(currentUser.id, "").replace("_", "");
+        const friendId = activeRoomId.replace(currentUser.id, "").replace("_", "").replace(/-/g, '');
         
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -269,6 +300,7 @@
         document.getElementById('user-list').appendChild(div);
     }
     async function accept(id) { await _supabase.from('friendships').update({status:'accepted'}).eq('id', id); loadSidebar(); }
+    
     async function createGroup() {
         const n = prompt("Group Name:"); if(!n) return;
         const { data: g } = await _supabase.from('groups').insert([{ name: n, created_by: currentUser.id }]).select().single();
